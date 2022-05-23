@@ -49,11 +49,13 @@ categories:
 
    请注意以上图片是在重复执行后截的图，首次执行会比上图中多出一些内容。证书生成在默认的目录下，到时配置的时候直接指定到这个路径就行。
 
-   注意由于这个证书默认有效期是三个月，所以我们需要配置一个定时任务来让它到期之前重新生成：
+   注意由于这个证书默认有效期是三个月，所以certbot默认安装了一个定时器自动生成新证书：
 
    ~~~shell
-   $ sudo crontab -l
-   2 2 18 2,5,8,11 * /bin/certbot renew
+   # 以下定时器设置了每隔一段时间就启动snap.certbot.renew.service来检查证书是否过期，过期就生成新证书
+   $ sudo systemctl list-timers
+   NEXT                         LEFT          LAST                         PASSED    UNIT                         ACTIVATES
+   Sun 2022-05-22 14:05:00 CST  4h 19min left Sun 2022-05-22 01:27:11 CST  8h ago    snap.certbot.renew.timer     snap.certbot.renew.service
    ~~~
 
 # 2.配置
