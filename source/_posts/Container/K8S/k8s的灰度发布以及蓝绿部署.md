@@ -25,7 +25,11 @@ categories:
 
 1. 安装nginx-ingress
 
-   参考：[Welcome - NGINX Ingress Controller (kubernetes.github.io)](https://kubernetes.github.io/ingress-nginx/)
+   参考：
+
+   [Welcome - NGINX Ingress Controller (kubernetes.github.io)](https://kubernetes.github.io/ingress-nginx/)
+
+   [How To Setup Nginx Ingress Controller On Kubernetes (devopscube.com)](https://devopscube.com/setup-ingress-kubernetes-nginx-controller/)
 
    ~~~shell
    # 使用helm安装，参考：https://helm.sh/docs/intro/quickstart/
@@ -45,6 +49,7 @@ categories:
        enabled: true
        default: true
      admissionWebhooks:
+       enabled: true
        patch:
          enabled: true
          image:
@@ -68,7 +73,7 @@ categories:
    NAME                    NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
    ingress-nginx-4         ingress-nginx   3               2022-05-19 23:07:53.953598445 +0800 CST deployed        ingress-nginx-4.1.1     1.2.0
    # 创建一个nginx服务，略过
-   # 创建ingress，这里k8s 1.22之后的版本和以前不用
+   # 创建ingress，这里k8s 1.22之后的版本和以前不同，多了一个ingressclass
    $ vi ingress-nginx.yaml
    ---
    apiVersion: networking.k8s.io/v1
@@ -79,7 +84,7 @@ categories:
    spec:
      ingressClassName: nginx
      rules:
-     - host: figo.test.com
+     - host: xxxx.test.com
        http:
          paths:
          - path: /
@@ -89,7 +94,38 @@ categories:
                name: nginx-service
                port:
                  number: 8000
-   $ 
+   # 报错解决方案：https://github.com/kubernetes/ingress-nginx/issues/5583           
+   $ kubectl create -f ingress-nginx.yaml
    ~~~
 
-   
+2. 访问测试
+
+   ~~~shell
+   $ kubectl get pods -n ingress-nginx -o wide
+   NAME                                              READY   STATUS    RESTARTS   AGE     IP               NODE              NOMINATED NODE   READINESS GATES
+   ingress-nginx-4-controller-78997f755-4gmt5        1/1     Running   0          4d23h   192.168.96.199   vm-12-17-centos   <none>           <none>
+   ingress-nginx-4-defaultbackend-76865c4844-rlq7x   1/1     Running   0          4d23h   192.168.99.74    vm-12-15-centos   <none>           <none>
+   # 根据上面ingress controller的结果我们到它所在的host上去操作以下步骤，这里nodevm-12-17-centos的ip为10.0.12.17
+   $ vi /etc/hosts
+   10.0.12.17 xxxx.test.com
+   $ curl -v http://figo.test.com:31808
+   # 查看nginx的日志，可以看到正常输出
+   $ kubectl logs nginx-deployment-8d545c96d-zkwvc -f
+   ~~~
+
+3. 部署一个新的nginx
+
+   ~~~shell
+   # 将原先的部署用的nginx.yaml改个名称，再部署一遍
+   $ kubectl get pods
+   NAME                                 READY   STATUS    RESTARTS   AGE
+   nginx-deployment-8d545c96d-zkwvc     1/1     Running   0          7m34s
+   nginx2-deployment-667c55f496-d28wh   1/1     Running   0          28s
+   $ kubectl get svc -o wide
+   NAME             TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)    AGE     SELECTOR
+   kubernetes       ClusterIP   10.96.0.1        <none>        443/TCP    25d     <none>
+   nginx-service    ClusterIP   10.109.51.139    <none>        8000/TCP   5d      app=nginx
+   nginx-service2   ClusterIP   10.108.232.249   <none>        8000/TCP   2m40s   app=nginx2
+   ~~~
+
+4. 

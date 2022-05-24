@@ -183,9 +183,11 @@ _multiconfig.yml%
 
 ~~~shell
 $ cd blog-repo
-$ npm install	# 安装所有依赖
+# 安装所有依赖
+$ npm install	
+# 之后需要把本地public key复制到git用户下的.ssh/authorized_keys
 ~~~
 
-安装好之后才可以像其他节点一样发布。
+然后才可以像其他节点一样发布。
 
 注意，一定要及时同步仓库，每次操作完毕，都需要push到github上。然后下次使用的时候记得要pull到最新版本。
