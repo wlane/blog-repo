@@ -19,7 +19,9 @@ categories:
 
    先部署一个新的版本（绿），此时测试整个绿色版本，等待测试没有问题后，将全部流量转移到新的版本，关闭旧版本（蓝）。
 
-# 2.实现
+# 2.灰度实现
+
+参考：[Annotations - NGINX Ingress Controller (kubernetes.github.io)](https://kubernetes.github.io/ingress-nginx/user-guide/nginx-configuration/annotations/)
 
 下面的测试我们会以nginx ingress为例来说明它的实施方式。
 
@@ -105,10 +107,15 @@ categories:
    NAME                                              READY   STATUS    RESTARTS   AGE     IP               NODE              NOMINATED NODE   READINESS GATES
    ingress-nginx-4-controller-78997f755-4gmt5        1/1     Running   0          4d23h   192.168.96.199   vm-12-17-centos   <none>           <none>
    ingress-nginx-4-defaultbackend-76865c4844-rlq7x   1/1     Running   0          4d23h   192.168.99.74    vm-12-15-centos   <none>           <none>
-   # 根据上面ingress controller的结果我们到它所在的host上去操作以下步骤，这里nodevm-12-17-centos的ip为10.0.12.17
+   $ kubectl get  svc -n ingress-nginx
+   NAME                                   TYPE           CLUSTER-IP       EXTERNAL-IP   PORT(S)                      AGE
+   ingress-nginx-4-controller             LoadBalancer   10.103.230.29    <pending>     80:31808/TCP,443:32733/TCP   5d22h
+   ingress-nginx-4-controller-admission   ClusterIP      10.100.128.222   <none>        443/TCP                      5d22h
+   ingress-nginx-4-defaultbackend         ClusterIP      10.103.74.172    <none>        80/TCP                       5d22h
+   # 根据上面ingress controller的结果我们到它所在的host上去操作以下步骤，这里nodevm-12-17-centos的ip为10.0.12.17（实际上clusterip下应该是任意一台都可以直接访问controller映射到node的31808，不过这里的service类型是lb的类型，可能有问题，先跳过此问题）
    $ vi /etc/hosts
    10.0.12.17 xxxx.test.com
-   $ curl -v http://figo.test.com:31808
+   $ curl -v http://xxxx.test.com:31808
    # 查看nginx的日志，可以看到正常输出
    $ kubectl logs nginx-deployment-8d545c96d-zkwvc -f
    ~~~
@@ -128,4 +135,224 @@ categories:
    nginx-service2   ClusterIP   10.108.232.249   <none>        8000/TCP   2m40s   app=nginx2
    ~~~
 
-4. 
+4. 根据请求的header来区分流量
+
+   ~~~shell
+   # 定义annotations
+   $ cat nginx2.yaml
+   apiVersion: networking.k8s.io/v1
+   kind: Ingress
+   metadata:
+     name: nginx-ingress2
+     namespace: default
+     annotations:
+       nginx.ingress.kubernetes.io/canary: "true"
+       nginx.ingress.kubernetes.io/canary-by-header: "Region"
+       nginx.ingress.kubernetes.io/canary-by-header-pattern: "nj"
+   spec:
+     ingressClassName: nginx
+     rules:
+     - host: xxxx.test.com
+       http:
+         paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: nginx-service2
+               port:
+                 number: 8000
+   $ kubectl apply -f nginx2.yaml
+   $ kubectl get ingress
+   NAME             CLASS   HOSTS           ADDRESS   PORTS   AGE
+   nginx-ingress    nginx   xxxx.test.com             80      24h
+   nginx-ingress2   nginx   xxxx.test.com             80      23h
+   $ kubectl get pod
+   NAME                                 READY   STATUS    RESTARTS   AGE
+   nginx-deployment-8d545c96d-nnjw7     1/1     Running   0          23h
+   nginx2-deployment-667c55f496-d28wh   1/1     Running   0          23h
+   # 此时默认的流量走旧版本的nginx
+   $ curl -v http://xxx.test.com:31808
+   $ kubectl logs nginx-deployment-8d545c96d-nnjw7 -f
+   # 定义header之后，可以发现请求走到了新版本的nginx2
+   $ curl -H "Region: nj" -v http://xxxx.test.com:31808
+   $ kubectl logs nginx2-deployment-667c55f496-d28wh -f
+   ~~~
+
+5. 根据cookie来区别流量
+
+   ~~~shell
+   $ cat nginx2.yaml
+   apiVersion: networking.k8s.io/v1
+   kind: Ingress
+   metadata:
+     name: nginx-ingress2
+     namespace: default
+     annotations:
+       nginx.ingress.kubernetes.io/canary: "true"
+       nginx.ingress.kubernetes.io/canary-by-cookie: "NJ"
+   spec:
+     ingressClassName: nginx
+     rules:
+     - host: xxxx.test.com
+       http:
+         paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: nginx-service2
+               port:
+                 number: 8000
+   # 通过cookie来访问，注意这里cookie一定要是always，参考官网对这个值的说明
+   $ curl --cookie "NJ=always" -v http://figo.test.com:31808
+   ~~~
+
+6. 根据权重来区分流量
+
+   ~~~shell
+   $ cat nginx2.yaml
+   apiVersion: networking.k8s.io/v1
+   kind: Ingress
+   metadata:
+     name: nginx-ingress2
+     namespace: default
+     annotations:
+       nginx.ingress.kubernetes.io/canary: "true"
+       nginx.ingress.kubernetes.io/canary-weight: "20"
+   spec:
+     ingressClassName: nginx
+     rules:
+     - host: xxxx.test.com
+       http:
+         paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: nginx-service2
+               port:
+                 number: 8000
+   # 以下访问大概每五次有一次能够访问到nginx2版本
+   $ curl  -v http://xxxx.test.com:31808
+   ~~~
+
+7. 优势与不足
+
+   不足：
+
+   - 只支持一个配置canary的服务，也就是说最多只能有一个新版本存在
+   - 必须要存在一个旧的版本服务才能配置canary，即使完全不用也不能删除，否则用户访问会超时
+
+   优势：
+
+   - 新版本故障可控
+   - 可在升级过程中按需扩缩容，不需要一次性给足资源
+
+# 3.蓝绿部署的实现
+
+1. 部署蓝（旧）版本
+
+   ~~~shell
+   #
+   $ cat nginx.yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: nginx-deployment
+     namespace: default
+     labels:
+       app: nginx
+       version: v1
+   spec:
+   。。。。。。
+   # 存在一个service
+   $ cat svc.yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: nginx-service
+     namespace: default
+   spec:
+     ports:
+     - port: 8000
+       targetPort: 80
+     selector:
+       app: nginx
+       version: v1
+     type: ClusterIP
+   # 此时ingres只是指向v1版本
+   $ cat ingress.yaml
+   apiVersion: networking.k8s.io/v1
+   kind: Ingress
+   metadata:
+     name: nginx-ingress
+     namespace: default
+   spec:
+     ingressClassName: nginx
+     rules:
+     - host: xxxx.test.com
+       http:
+         paths:
+         - path: /
+           pathType: Prefix
+           backend:
+             service:
+               name: nginx-service
+               port:
+                 number: 8000
+   # 此时访问的是旧版本应用
+   $ curl  -v http://xxxx.test.com:31808
+   ~~~
+
+2. 部署绿（新）版本
+
+   ~~~shell
+   # 部署应用的新版本
+   $ cat nginx.yaml
+   apiVersion: apps/v1
+   kind: Deployment
+   metadata:
+     name: nginx-deployment
+     namespace: default
+     labels:
+       app: nginx
+       version: v2
+   spec:
+   。。。。。。
+   # 修改service的指向
+   $ cat svc.yaml
+   apiVersion: v1
+   kind: Service
+   metadata:
+     name: nginx-service
+     namespace: default
+   spec:
+     ports:
+     - port: 8000
+       targetPort: 80
+     selector:
+       app: nginx
+       version: v2
+     type: ClusterIP
+   # 此时访问的是新版本的应用
+   $ curl  -v http://xxxx.test.com:31808
+   ~~~
+
+3. 优势与不足
+
+   不足：
+
+   - 两套生产环境
+   - 新版本故障将会影响所有用户
+
+   优势：
+
+   - 部署简单
+   - 无需停机，影响时间短
+
+
+
+本文参考以下网址：
+
+https://cloud.tencent.com/developer/article/1729580
