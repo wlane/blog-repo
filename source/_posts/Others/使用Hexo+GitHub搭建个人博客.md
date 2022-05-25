@@ -95,6 +95,8 @@ $ npm -v
 7.12.0
 $ git --version
 git version 2.1.4
+# 区分大小写
+$ git config core.ignorecase false
 ~~~
 
 接下来就是安装Hexo了：
