@@ -31,7 +31,7 @@ categories:
 
 但是使用https就可以满足安全通信的四个原则。
 
-https指的是http+ssl，具体可参考：[What is SSL](https://www.ssl.com/faqs/faq-what-is-ssl/)，注意，现在我们在https上使用的是TLS，只不过由于习惯，我们仍然称之为SSL。
+https指的是http+ssl，具体可参考：[What is SSL](https://www.ssl.com/faqs/faq-what-is-ssl/)，注意，现在我们在https上使用的是TLS，只不过由于习惯，我们仍然称之为SSL或者SSL/TLS。现在一般情况下使用的版本为TLS1.2或者TLS1.3。
 
 # 2.加密算法
 
@@ -64,7 +64,7 @@ https中混合使用了对称加密和非对称加密，下面先了解一下这
 
    - 如同对称加密中获取secret key的过程，如何获取正确的公钥信息。如果在一开始发送公钥的过程中被截获，中间人使用假冒的公钥来代替，则仍然会产生问题。
 
-# 3.证书
+# 3.数字证书
 
 参考：[WHAT IS AN SSL CERTIFICATE](https://www.digicert.com/what-is-an-ssl-certificate)
 
@@ -83,7 +83,7 @@ https中混合使用了对称加密和非对称加密，下面先了解一下这
 
 2. 如何防止证书被掉包
 
-   由于中间人可是可以向CA申请证书的，所以他可以通过申请证书来获取CA的公钥，从而截获通信数据，伪装成服务端应用发送自己的证书给客户端。想象一下这种情形：
+   由于中间人可是可以向CA申请证书的，所以他可以通过申请证书来伪装成服务端应用发送自己的证书给客户端。想象一下这种情形：
 
    ~~~html
    client--> nginx --> https应用
@@ -109,3 +109,48 @@ https中混合使用了对称加密和非对称加密，下面先了解一下这
 
 # 4.TLS握手
 
+参考：[An overview of the SSL or TLS handshake](https://www.ibm.com/docs/en/ibm-mq/7.5?topic=ssl-overview-tls-handshake)
+
+![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220605160016.png)
+
+1. 客户端发送client hello消息给服务器发起握手请求，该消息包含了客户端支持的TLS版本和加密算法，以及一个client random的随机数；
+2. 服务器回复server hello消息，包含了数字证书（链），服务器可以使用的加密算法以及一个server random的随机数；
+3. 客户端验证服务器发过来的数字证书，确保对方的身份合法，主要有一下几个步骤：
+   - 检查数字签名，实际上就是上面数字证书一节所说的比对摘要算法的结果；
+   - 验证证书链是否有效，也就是上面数字证书一节所说的验证流程；
+   - 检查证书有效期；
+   - 检查证书是否已被撤回，也就是说某些证书因为用户信息发生变化或者其他安全原因，可能会在有效期内撤销证书，因此就需要对证书状态进行查询，这就是OCSP的功能（web服务，比如nginx中可配置）。
+4. 客户端发送使用服务器公钥加密过的随机数premaster secret；
+5. 某些情况下，服务器会使用证书来验证客户端身份，此时服务端会要求客户端也发送证书，没有的话，客户端会发送一个没有证书的警告，此时客户端就通不过身份验证；
+6. 如果客户端发送证书的话，就验证该证书是否有效。此时服务器会使用私钥解密客户端发过来的数据，得到随机数premaster secret，此后，服务端和客户端使用同时拥有的三个随机数：client random、server random和premaster secret，加上相同的加密算法得到一个会话秘钥key（对称加密）；
+7. 客户端通过上面的会话秘钥key加密传输finished消息；
+8. 服务端也通过上面的会话秘钥key加密传输finished消息；
+9. 接下来客户端和服务端使用这个对称加密得到的会话秘钥key传递消息。
+
+从以上的流程我们可以看出：
+
+- 服务器证书只是用来传输公钥；
+- 服务器公钥和私钥只是用来加密和解密得到premaster key；
+- 最终传输的消息加密使用的key是使用premaster key和两个随机数进行对称加密得到的；
+- 整个握手流程先是使用非对称加密得到一个premaster key，然后再使用对称加密得到一个最终的会话秘钥。然后使用这个共享秘钥来进行消息的加密传输。
+
+所以在整个流程中涉及到了信息摘要算法(证书中的签名)、非对称加密和对称加密，所以我们在web服务，比如nginx中配置ssl_ciphers的时候，比如：
+
+> ```nginx
+> ECDHE-RSA-AES128-GCM-SHA256
+> ```
+
+包含了以下算法组合在了一起：
+
+- ECDHE：密钥交换算法，就是生成premaster key的算法；
+- RSA：非对称加密算法，用来做签名；
+- AES128-GCM：对称加密算法；
+- SHA256：消息摘要算法。
+
+
+
+本文参考了以下地址：
+
+https://network.51cto.com/article/633715.html
+
+https://www.ruanyifeng.com/blog/2014/09/illustration-ssl.html
