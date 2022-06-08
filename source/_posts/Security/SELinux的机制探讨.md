@@ -65,7 +65,7 @@ categories:
 
 1. 类型强制（Type Enforcement）访问控制机制
 
-   SELinux要求所有访问都必须要由明确授权，默认不允许任何访问，这就意味着在SELinux的世界里没有默认的超级用户。此时由管理员使用allow规则指定主体和客体类型授予访问权限，这里的allow规则其实也是上面架构中提及过的Access Vector，它主要由以下四个部分组成：
+   顾名思义，这种访问控制机制就是基于类型来进行权限的控制。SELinux要求所有访问都必须要由明确授权，默认不允许任何访问，这就意味着在SELinux的世界里没有默认的超级用户。此时由管理员使用allow规则指定主体和客体类型授予访问权限，这里的allow规则其实也是上面架构中提及过的Access Vector，它主要由以下四个部分组成：
 
    - 源类型（Source type(s)）：通常是尝试访问的进程的域类型 ；
    - 目标类型（Target type(s)）：被进程访问的客体的类型 ；
@@ -214,10 +214,95 @@ Max kernel policy version:      31
 
    - setools和setools-console：策略分析、检索，上下文管理，日志审计和监控等功能；
    - policycoreutils：提供restorecon、secon、setfiles、semodule、load_policy和setsebool等命令；
-   - policycoreutils-python：提供semanage、audit2allow、audit2why和chcat等管理命令。
+   - policycoreutils-python：提供semanage、audit2allow、audit2why和chcat等管理命令；
+   - setroubleshoot：检查违规行为，并提供告警功能，提供sealert命令。
 
    ~~~shell
-   $ sudo yum install -y setools setools-console policycoreutils policycoreutils-python
+   $ sudo yum install -y setools setools-console policycoreutils policycoreutils-python setroubleshoot
    ~~~
 
-2. 
+2. 使用nginx测试关于selinux的配置
+
+   首先开启selinux：
+
+   ~~~shell
+   # 修改配置文件
+   $ sudo vi /etc/sysconfig/selinux
+   SELINUX=enforcing
+   ~~~
+
+   如果我们ssh使用的是非默认的22端口，则需要先赋予端口访问权限：
+
+   ~~~shell
+   # 查询现在的端口
+   $ sudo semanage port -l | grep ssh
+   ssh_port_t                     tcp      22
+   # 指定类型增加新端口
+   $ sudo semanage port -a -t ssh_port_t -p tcp 12345
+   $ sudo semanage port -l | grep ssh
+   ssh_port_t                     tcp      12345, 22 
+   # 如果不是一台新服务器，最好执行以下命令并重启，这会把系统文件按照selinux安全策略重新打上正确的标识，否则可能会有各种问题
+   $ sudo touch /.autorelabel; sudo reboot
+   ~~~
+
+   - 使用yum安装的软件
+
+     ~~~shell
+     $ sudo yum install -y nginx
+     $ sudo vi /etc/nginx/nginx.conf
+     ......
+     server {
+          listen       53333;
+          root         /usr/share/nginx/html;
+     ......
+     }
+     $ sudo systemctl start nginx.service
+     ~~~
+
+     此时浏览器访问：
+
+     ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220608212807.png)
+
+     可以看出来能够正常访问默认的页面，此时我们把自己创建的页面复制到该目录：
+
+     ~~~shell
+     # 创建一个index文件
+     $ cat index.html
+     just a selinux test
+     # 用自己的文件覆盖原有的文件
+     $ sudo mv index.html /usr/share/nginx/html/index.html
+     $ sudo chmod 644 /usr/share/nginx/html/index.html
+     ~~~
+
+     此时再次使用浏览器访问：
+
+     ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220608233103.png)
+
+     发现返回Forbidden信息，查看文件上下文：
+
+     ~~~shell
+     # 查看index文件上下文
+     $ ll -Z /usr/share/nginx/html/index.html
+     -rw-rw-r--. figo figo unconfined_u:object_r:user_home_t:s0 /usr/share/nginx/html/index.html
+     # 查看上层目录的上下文
+     $ ll -d -Z /usr/share/nginx/html/
+     drwxr-xr-x. root root system_u:object_r:httpd_sys_content_t:s0 /usr/share/nginx/html/
+     ~~~
+
+     可以看出这里的类型不一致，所以需要把index类型改成和目录的一致：
+
+     ~~~shell
+     # 第一种方式，直接修改文件的类型
+     $ sudo chcon -t httpd_sys_content_t /usr/share/nginx/html/index.html
+     # 第二种方式，恢复默认的文件类型
+     $ sudo restorecon -R -v /usr/share/nginx/html/
+     restorecon reset /usr/share/nginx/html/index.html context unconfined_u:object_r:user_home_t:s0->unconfined_u:object_r:httpd_sys_content_t:s0
+     $ ll -Z /usr/share/nginx/html/index.html
+     -rw-rw-r--. figo figo unconfined_u:object_r:httpd_sys_content_t:s0 /usr/share/nginx/html/index.html
+     ~~~
+
+     此时文件的类型标识符和上层目录，也就是它默认的一致：
+
+     ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220608234343.png)
+
+     浏览器中现在已经可以访问。
