@@ -897,4 +897,4 @@ Opeartor将运维人员对软件操作的流程代码化，同时利用Kubernete
   可能：
 
   - ingress-nginx-controller-admission.ingress-nginx.svc  这个 域名应该使用 ingress-nginx-controller-admission.ingress-nginx.svc.cluster.local：[webhook.cert-manager.io](https://github.com/cert-manager/cert-manager/issues/2640)
-  - calico有问题，报错访问上游dns：[coredns](https://github.com/kubernetes/kubernetes/issues/86762)
+  - calico有问题，访问上游dns报错：[coredns](https://github.com/kubernetes/kubernetes/issues/86762)
