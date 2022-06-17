@@ -8,9 +8,11 @@ categories:
 
 # 1.概念
 
-参考：[Operator pattern | Kubernetes](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)             [Operator · Kubernetes 中文指南——云原生应用架构实战手册 (jimmysong.io)](https://jimmysong.io/kubernetes-handbook/develop/operator.html)
+参考：[Operator pattern | Kubernetes](https://kubernetes.io/docs/concepts/extend-kubernetes/operator/)  以及  [Operator · Kubernetes 中文指南——云原生应用架构实战手册 (jimmysong.io)](https://jimmysong.io/kubernetes-handbook/develop/operator.html)
 
 书籍：[O’Reilly: Kubernetes Operators: Automating the Container Orchestration Platform (redhat.com)](https://www.redhat.com/en/resources/oreilly-kubernetes-operators-automation-ebook)
+
+operator仓库：[OperatorHub.io | The registry for Kubernetes Operators](https://operatorhub.io/)
 
 Operator是一组特定的应用程序控制器，它基于K8S的两个概念建成：
 
