@@ -104,5 +104,5 @@ theme: tree
 deploy:
   type: 'git'
   #repo: git@github.com:wlane/wlane.github.io.git
-  repo: ssh://git@149.28.138.126:52222/home/git/blog.git
+  repo: ssh://githook@114.116.22.26:51234/home/githook/blog.git
   branch: master 
