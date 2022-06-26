@@ -66,7 +66,7 @@ NAT表如下：
 
 # 3.分析
 
-前置知识：[iptables原理 | repo (xwangwang.com)](https://www.xwangwang.com/2022/04/30/Security/iptables原理/)
+前置知识：[iptables原理 | repo (xwangwang.net)](https://www.xwangwang.net/2022/05/26/Security/iptables原理/)
 
 此时一个客户端想要访问 http://10.0.12.3（走eth0）或者http://localhost（走lo），则防火墙过滤流程如下：
 

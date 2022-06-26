@@ -64,7 +64,7 @@ categories:
 
 2. 配置
 
-   一般这种代理服务器上的应用都是我们熟知的Nginx，Haproxy之类的，具体配置可以参考：[Nginx的安全配置 | repo (xwangwang.com)](https://www.xwangwang.com/2022/05/02/Web/nginx/Nginx的安全配置/)
+   一般这种代理服务器上的应用都是我们熟知的Nginx，Haproxy之类的，具体配置可以参考：[Nginx的安全配置](https://www.xwangwang.net/2022/05/26/web/nginx/Nginx的安全配置/)
 
 # 3.透明代理
 
@@ -74,4 +74,4 @@ categories:
 
 [透明代理入门 | Project X (xtls.github.io)](https://xtls.github.io/document/level-2/transparent_proxy/transparent_proxy.html)
 
-主要实现原理仍然是和iptables有关，需要了解：[iptables原理 | repo (xwangwang.com)](https://www.xwangwang.com/2022/04/30/Security/iptables原理/)
+主要实现原理仍然是和iptables有关，需要了解：[iptables原理](https://www.xwangwang.net/2022/05/26/Security/iptables原理/)
