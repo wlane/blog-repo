@@ -1,5 +1,5 @@
 ---
-title: Bash One-Liners Explained Part 1 Working with files(译文)
+title: Bash One-Liners Explained Part I Working with files(译文)
 tags:
 - bash
 categories:
@@ -8,7 +8,7 @@ categories:
 
 来自：[Bash One-Liners Explained, Part I: Working with files (catonmat.net)](https://catonmat.net/bash-one-liners-explained-part-one)
 
-# Part 1 文件处理
+# Part I 文件处理
 
 1. 清空文件（截断文件至0大小）
 
@@ -250,9 +250,7 @@ categories:
 
     这个命令会扩展成`mv /path/to/file /path/to/file_old`。
 
-    (关于花括号扩展，可以参考：[Brace expansion](https://wiki.bash-hackers.org/syntax/expansion/brace)
-
-
+    （关于花括号扩展，可以参考：[Brace expansion](https://wiki.bash-hackers.org/syntax/expansion/brace)）
 
 
 
