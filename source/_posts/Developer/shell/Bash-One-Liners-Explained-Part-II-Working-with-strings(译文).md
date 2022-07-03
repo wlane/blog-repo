@@ -246,7 +246,7 @@ categories:
    $ echo ${str//foo/bar}
    ~~~
 
-10. 检查字符串是否匹配模式
+10. 检查字符串是否匹配某种模式
 
     ~~~shell
     $ if [[ $file = *.zip ]]; then
@@ -276,11 +276,11 @@ categories:
 
 12. 计算字符串的长度
 
-    ~~~shell
-    $ echo ${#str}
-    ~~~
+    ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220703232140.png)
 
-    这里我们使用参数表达式`${#str}`,它会返回在变量str中的字符长度。很简单。
+    我们使用了参数表达式![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220703232241.png),它会返回在变量str中的字符长度。很简单。
+
+    (这里不能输入![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220703232241.png)字符，否则显示不正常，怀疑是Typora的bug。)
 
 13. 从字符中提取子字符串
 
@@ -308,6 +308,55 @@ categories:
     ~~~shell
     $ declare -u var
     $ var="foo bar"
+    ~~~
+
+    在bash中declare命令声明变量以及它的属性。在这个例子中，我们给变量var一个-u的属性，当它被赋值时，它的内容会被转变成大写字母。现在你显示它，就会发现它的内容都是大写的：
+
+    ~~~shell
+    $ echo $var
+    FOO BAR
+    ~~~
+
+    注意-u参数是在bash 4时被引用的。同样你可以使用bash 4的另一种可以使var变量中字符串变成大写的方法，就是`${var^^}`参数扩展：
+
+    ~~~shell
+    $ str="zoo raw"
+    $ echo ${str^^}
+    ~~~
+
+    输出：
+
+    ~~~shell
+    ZOO RAW
+    ~~~
+
+15. 将字符串转变为小写
+
+    ~~~shell
+    $ declare -l var
+    $ var="FOO BAR"
+    ~~~
+
+    与前一个命令类似，declare的-l参数给var变量设置了一个小写的属性，这就使得它一直都是小写的：
+
+    ~~~shell
+    $ echo $var
+    foo bar
+    ~~~
+
+    -l参数也只存在于bash 4以及后面的版本中。
+
+    另外一种使得字符串小写的方式是使用`${var,,}`参数扩展：
+
+    ~~~shell
+    $ str="ZOO RAW"
+    $ echo ${str,,}
+    ~~~
+
+    输出：
+
+    ~~~shell
+    zoo raw
     ~~~
 
     
