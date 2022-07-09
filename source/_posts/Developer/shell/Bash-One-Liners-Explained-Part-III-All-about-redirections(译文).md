@@ -166,4 +166,30 @@ categories:
    $ command <file
    ~~~
 
+   这里bash在执行命令之前此时打开一个文件来读。如果打开失败，bash带着错误退出，不再运行任何命令。如果打开成功，bash使用打开文件的文件描述符作为命令的输入文件描述符。
+
+   完成上述流程后，文件描述符表如下：
+
+   ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220706215831.png)
+
+   这里有一个例子，当你要读取文件的第一行到变量中，你可以简单的这样处理：
+
+   ~~~shell
+   $ read -r line < file
+   ~~~
+
+   bash内置命令read从标准输入读取单行。通过使用这个输入重定向操作符`<`，我们就可以将其设置成中文件中读取行。
+
+6. 重定向一堆文本到一个命令的输入
+
+   ~~~shell
+   $ command <<EOL
+   your
+   multi-line
+   text
+   goes
+   here
+   EOL
+   ~~~
+
    
