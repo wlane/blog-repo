@@ -127,3 +127,76 @@ categories:
 
 # 4.性能调优
 
+1. 基础设施级别
+
+   参考：[<font color=\#6495ED><u>Intro to Ceph — Ceph Documentation</u></font>](https://docs.ceph.com/en/latest/start/intro/)
+
+   - 硬件
+
+     主机：避免和CPU密集型的VM运行在一个宿主机上，最佳方式是采用独立的物理机；
+
+     CPU：根据提供的存储服务的类型和负载决定，如果提供的是RBD块存储，则最起码一个OSD要占到两个core以上，如果是Cephfs的文件存储，它的MDS是CPU密集型服务，所以需要配置四核以上甚至更高运行频率的CPU；
+
+     内存：通常越大越好。建议为每个Bluestore OSD的内存大小设置为8G。存在MON和MGR的节点，在小集群时32G足够，300个OSD以内的集群64G，对于更多OSD的集群，则最好准备配置到128G。MDS取决于配置的缓存数，至少1GB。整体上总的内存要预留80%，以避免突发情况下Linux系统的OOM将服务杀死；
+
+     磁盘：
+
+     - 建议磁盘最小为1T；
+     - 不要在单个磁盘上运行多个OSD，也不要把OSD和MON或者MDS放在单个磁盘上运行；
+     - 区分操作系统和软件与OSD的磁盘，比如OSD可以使用SSD的磁盘，但是操作系统和服务可以使用HDD的磁盘；
+     - 如果使用CephFS的话，将MDS和文件存储的内容分隔开来；
+     - 可以考虑不做raid；
+     - 可以考虑在基准测试明确可以提高的情况下禁止磁盘的写缓存。
+
+     网络：配置至少10Gb的网络。
+
+   - 操作系统
+
+     ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220716000008.png)
+
+     以上是安装ceph应用的服务器要求，如果是挂载RBD或者Cephfs的其他服务器，需要考虑是不是使用内核客户端挂载的方式，具体查看下图：
+
+     ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220716000303.png)
+
+2. 系统配置
+
+   [Learning Ceph: Unifed, scalable, and reliable open source storage solution - Anthony D'Atri, Vaibhav Bhembre, Karan Singh - Google Books](https://books.google.co.jp/books?id=xRhKDwAAQBAJ&pg=PA300&lpg=PA300&dq=ceph+net.ipv4&source=bl&ots=OIsBDkYtGA&sig=ACfU3U2nMR2rmFVKK-DT5fy1dQwh9TbeoA&hl=en&sa=X&redir_esc=y#v=twopage&q&f=false)
+
+   ~~~shell
+   $ sudo cat /etc/sysctl.d/ceph.conf
+   net.ipv4.ip_forward = 1
+   kernel.pid_max = 4194303
+   kernel.threads-max = 2097152
+   vm.max_map_count = 524288
+   
+   vm.min_free_kbytes = 1048576
+   vm.vfs_cache_pressure = 10
+   vm.zone_reclaim_mode = 0
+   vm.dirty_ratio = 80
+   vm.dirty_backgroud_ratio = 3
+   
+   # 下面参数和网卡速率有一定关系，这里以10G的网卡为标准
+   net.core.rmem_max = 33554432
+   net.core.wmem_max = 33554432
+   net.core.rmem_default = 33554432
+   net.core.wmem_default = 33554432
+   net.core.optmem_max = 40960
+   net.ipv4.tcp_rmem = 4096 87380 33554432
+   net.ipv4.tcp_wmem = 4096 65536 33554432
+   net.core.somaxconn = 5000
+   net.core.netdev_max_backlog = 250000
+   net.ipv4.tcp_max_syn_backlog = 100000
+   net.ipv4.tcp_max_tw_buckets = 2000000
+   net.ipv4.tcp_timestamps = 0
+   net.ipv4.tcp_tw_reuse = 1
+   net.ipv4.tcp_tw_recycle = 1
+   net.ipv4.tcp_slow_start_after_idle = 0
+   net.ipv4.tcp_fin_timeout = 10
+   net.ipv4.conf.all.send_redirects = 0
+   net.ipv4.conf.all.accept_redirects = 0
+   net.ipv4.conf.all.accept_source_route = 0
+   
+   $ sudo sysctl -p /etc/sysctl.d/ceph.conf
+   ~~~
+
+   
