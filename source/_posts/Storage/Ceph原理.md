@@ -158,9 +158,9 @@ categories:
 
      ![](https://images-pigo.oss-cn-beijing.aliyuncs.com/20220716000303.png)
 
-2. 系统配置
+2. 系统参数配置
 
-   [Learning Ceph: Unifed, scalable, and reliable open source storage solution - Anthony D'Atri, Vaibhav Bhembre, Karan Singh - Google Books](https://books.google.co.jp/books?id=xRhKDwAAQBAJ&pg=PA300&lpg=PA300&dq=ceph+net.ipv4&source=bl&ots=OIsBDkYtGA&sig=ACfU3U2nMR2rmFVKK-DT5fy1dQwh9TbeoA&hl=en&sa=X&redir_esc=y#v=twopage&q&f=false)
+   参考：[Learning Ceph: Unifed, scalable, and reliable open source storage solution - Anthony D'Atri, Vaibhav Bhembre, Karan Singh - Google Books](https://books.google.co.jp/books?id=xRhKDwAAQBAJ&pg=PA300&lpg=PA300&dq=ceph+net.ipv4&source=bl&ots=OIsBDkYtGA&sig=ACfU3U2nMR2rmFVKK-DT5fy1dQwh9TbeoA&hl=en&sa=X&redir_esc=y#v=twopage&q&f=false)
 
    ~~~shell
    $ sudo cat /etc/sysctl.d/ceph.conf
@@ -199,4 +199,12 @@ categories:
    $ sudo sysctl -p /etc/sysctl.d/ceph.conf
    ~~~
 
-   
+3. ceph配置参数调优
+
+   此部分比较复杂，需要根据存储类型和客户端来分别配置，可参考：[Ceph Tuning](https://documentation.suse.com/ses/6/html/ses-all/tuning-ceph.html)	
+
+   ​		
+
+本文参考了以下地址：
+
+https://segmentfault.com/a/1190000038366631
